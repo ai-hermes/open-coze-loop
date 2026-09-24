@@ -35,3 +35,17 @@ jobs:
           mirror nsqio/nsq:v1.2.1 coze-dep-nsq:1.2.1
           mirror cozedev/coze-studio-server:latest coze-dep-studio-server:latest
           mirror cozedev/coze-studio-web:latest coze-dep-studio-web:latest
+
+  prefetch:
+    needs: mirror
+    runs-on: [self-hosted, coze-loop-deploy]
+    steps:
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u github-actions --password-stdin
+          cd /opt/coze/coze-loop
+          docker compose --env-file .env --env-file .deploy.env -f docker-compose.yml -f docker-compose.deploy.yml --profile '*' pull
+          cd /opt/coze/coze-studio/docker
+          docker compose --env-file .env --env-file .deploy.env -f docker-compose.yml -f docker-compose.deploy.yml pull
+          docker logout ghcr.io
