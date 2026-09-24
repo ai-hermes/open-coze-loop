@@ -23,14 +23,13 @@ jobs:
           mirror redis:8.2.0 coze-dep-redis:8.2.0
           mirror mysql:9.4.0 coze-dep-mysql:9.4.0
           mirror clickhouse/clickhouse-server:latest coze-dep-clickhouse:latest
-          mirror minio/minio:RELEASE.2025-06-13T11-33-47Z coze-dep-minio:2025-06-13
+          mirror minio/minio:RELEASE.2025-06-13T11-33-47Z-cpuv1 coze-dep-minio:2025-06-13-cpuv1
           mirror apache/rocketmq:5.3.3 coze-dep-rocketmq:5.3.3
           mirror nginx:1.28.0 coze-dep-nginx:1.28.0
           mirror denoland/deno:1.45.5 coze-dep-deno:1.45.5
           mirror mysql:8.4.5 coze-dep-mysql:8.4.5
           mirror bitnamilegacy/redis:8.0 coze-dep-bitnami-redis:8.0
           mirror bitnamilegacy/elasticsearch:8.18.0 coze-dep-elasticsearch:8.18.0
-          mirror minio/minio:RELEASE.2025-06-13T11-33-47Z-cpuv1 coze-dep-minio:2025-06-13-cpuv1
           mirror bitnamilegacy/etcd:3.5 coze-dep-etcd:3.5
           mirror milvusdb/milvus:v2.5.10 coze-dep-milvus:2.5.10
           mirror nsqio/nsq:v1.2.1 coze-dep-nsq:1.2.1
