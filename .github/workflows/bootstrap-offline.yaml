@@ -1,0 +1,76 @@
+name: Bootstrap offline deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save prebuilt images
+        run: |
+          set -eu
+          while read -r source target; do
+            docker pull "$source"
+            docker tag "$source" "$target"
+          done <<'EOF'
+          cozedev/coze-loop:1.5.1 ghcr.io/ai-hermes/coze-dep-loop:1.5.1
+          cozedev/coze-loop-python-faas:1.0.0 ghcr.io/ai-hermes/coze-dep-loop-python-faas:1.0.0
+          redis:8.2.0 ghcr.io/ai-hermes/coze-dep-redis:8.2.0
+          mysql:9.4.0 ghcr.io/ai-hermes/coze-dep-mysql:9.4.0
+          clickhouse/clickhouse-server:latest ghcr.io/ai-hermes/coze-dep-clickhouse:latest
+          bitnamilegacy/minio:2025.6.13-debian-12-r0 ghcr.io/ai-hermes/coze-dep-minio:2025.6.13
+          apache/rocketmq:5.3.3 ghcr.io/ai-hermes/coze-dep-rocketmq:5.3.3
+          nginx:1.28.0 ghcr.io/ai-hermes/coze-dep-nginx:1.28.0
+          denoland/deno:1.45.5 ghcr.io/ai-hermes/coze-dep-deno:1.45.5
+          mysql:8.4.5 ghcr.io/ai-hermes/coze-dep-mysql:8.4.5
+          bitnamilegacy/redis:8.0 ghcr.io/ai-hermes/coze-dep-bitnami-redis:8.0
+          bitnamilegacy/elasticsearch:8.18.0 ghcr.io/ai-hermes/coze-dep-elasticsearch:8.18.0
+          bitnamilegacy/etcd:3.5 ghcr.io/ai-hermes/coze-dep-etcd:3.5
+          milvusdb/milvus:v2.5.10 ghcr.io/ai-hermes/coze-dep-milvus:2.5.10
+          nsqio/nsq:v1.2.1 ghcr.io/ai-hermes/coze-dep-nsq:1.2.1
+          cozedev/coze-studio-server:latest ghcr.io/ai-hermes/coze-dep-studio-server:latest
+          cozedev/coze-studio-web:latest ghcr.io/ai-hermes/coze-dep-studio-web:latest
+          EOF
+          docker save -o coze-images-amd64.tar $(awk '{print $2}' <<'EOF'
+          ghcr.io/ai-hermes/coze-dep-loop:1.5.1
+          ghcr.io/ai-hermes/coze-dep-loop-python-faas:1.0.0
+          ghcr.io/ai-hermes/coze-dep-redis:8.2.0
+          ghcr.io/ai-hermes/coze-dep-mysql:9.4.0
+          ghcr.io/ai-hermes/coze-dep-clickhouse:latest
+          ghcr.io/ai-hermes/coze-dep-minio:2025.6.13
+          ghcr.io/ai-hermes/coze-dep-rocketmq:5.3.3
+          ghcr.io/ai-hermes/coze-dep-nginx:1.28.0
+          ghcr.io/ai-hermes/coze-dep-deno:1.45.5
+          ghcr.io/ai-hermes/coze-dep-mysql:8.4.5
+          ghcr.io/ai-hermes/coze-dep-bitnami-redis:8.0
+          ghcr.io/ai-hermes/coze-dep-elasticsearch:8.18.0
+          ghcr.io/ai-hermes/coze-dep-etcd:3.5
+          ghcr.io/ai-hermes/coze-dep-milvus:2.5.10
+          ghcr.io/ai-hermes/coze-dep-nsq:1.2.1
+          ghcr.io/ai-hermes/coze-dep-studio-server:latest
+          ghcr.io/ai-hermes/coze-dep-studio-web:latest
+          EOF
+          )
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coze-images-amd64
+          path: coze-images-amd64.tar
+          compression-level: 0
+
+  deploy:
+    needs: bundle
+    runs-on: [self-hosted, coze-loop-deploy]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: coze-images-amd64
+
+      - name: Load images and start stacks
+        run: |
+          docker load -i coze-images-amd64.tar
+          cd /opt/coze/coze-loop
+          docker compose --env-file .env --env-file .deploy.env -f docker-compose.yml -f docker-compose.deploy.yml --profile '*' up -d --no-build
+          cd /opt/coze/coze-studio/docker
+          docker compose --env-file .env --env-file .deploy.env -f docker-compose.yml -f docker-compose.deploy.yml up -d --no-build
